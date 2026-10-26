@@ -1,0 +1,71 @@
+Atue como um especialista em N8N.
+Crie uma automação para monitorar métricas de Fundos Imobiliários (FIIs) a partir de sites/APIs de referência e gerar alertas automáticos de oportunidade de compra ou venda.
+
+Público:
+Investidores de Fundos Imobiliários e analistas de carteira.
+
+Ferramentas envolvidas:
+n8n, Google Sheets (lista de ativos e metas), HTTP Request / API financeira (ex: Brapi/StatusInvest) e Telegram (envio de alertas).
+
+Fluxo:
+1. Executar o fluxo agendado periodicamente (ex: diariamente nos dias úteis).
+2. Consultar a lista de FIIs acompanhados a partir de uma planilha no Google Sheets.
+3. Buscar as cotações e indicadores atuais (P/VP, Dividend Yield e último rendimento) de cada FII através de requisições HTTP.
+4. Comparar os indicadores coletados com as regras e metas estipuladas.
+5. Enviar uma mensagem formatada via Telegram apenas para os fundos que atingirem os critérios de oportunidade.
+
+Regras:
+- Ignorar fundos com dados ausentes, nulos ou com erro de retorno na API.
+- Gerar alerta de COMPRA apenas se o P/VP for menor ou igual a 0.95 e o Dividend Yield anualizado for maior que 10%.
+- Gerar alerta de VENDA/ATENÇÃO se o P/VP for maior ou igual a 1.10.
+- Evitar o disparo de notificações duplicadas no mesmo dia para o mesmo ativo.
+
+
+
+🛠️ Nós do N8N a Serem Utilizados
+Schedule Trigger:
+
+Função: Iniciar o fluxo automaticamente em horários definidos (ex: de segunda a sexta, às 09:00).
+
+Google Sheets:
+
+Função: Ler a lista de Fundos Imobiliários cadastrados na sua planilha (trazendo colunas como Ticker, Preço Teto, P/VP Alvo, etc.).
+
+HTTP Request:
+
+Função: Fazer requisições de API (ex: Brapi/StatusInvest) para buscar os dados financeiros atualizados em tempo real de cada FII retornado pelo nó do Google Sheets.
+
+Code (JavaScript/Python) ou Edit Fields (Set):
+
+Função: Tratar o JSON retornado pela API, formatando valores numéricos, calculando indicadores caso não venham prontos e preparando as variáveis.
+
+Filter (ou If):
+
+Função: Validar as regras de negócio. Ele filtra apenas os itens onde:
+
+P/VP <= 0.95 AND Dividend Yield > 10% (Condição de COMPRA)
+
+OR P/VP >= 1.10 (Condição de VENDA/ATENÇÃO)
+
+Switch (Opcional):
+
+Função: Separar o fluxo em duas rotas: uma para formatar a mensagem de "Oportunidade de Compra" e outra para "Alerta de Venda".
+
+Telegram (ou Send Email):
+
+Função: Enviar a notificação final formatada com Emojis (ex: 🟢 Oportunidade de Compra / 🔴 Alerta de Venda) direto para o seu canal ou conversa do Telegram.
+
+
+
+
+
+Lógica de Funcionamento do Workflow
+Início e Leitura: O gatilho temporal aciona o fluxo no início do dia. O n8n conecta-se ao Google Sheets e recupera a lista de tickers dos FIIs cadastrados (ex: MXRF11, HGLG11, KNCR11).
+
+Consulta Externa: O n8n percorre cada ticker e realiza uma chamada HTTP para a API financeira recuperando a cotação atual, P/VP, DY e dados do último rendimento.
+
+Limpeza e Validação: Um nó de código/filtro ignora qualquer FII que tenha retornado erro na busca ou dados nulos.
+
+Tomada de Decisão: O nó Filter aplica a lógica matemática comparando os dados atuais recebidos com os parâmetros definidos nas regras. Apenas os ativos fora do preço justo (subavaliados ou superavaliados) seguem no fluxo.
+
+Notificação: Para cada ativo aprovado pelo filtro, o nó do Telegram constrói um texto amigável informando o código do fundo, o valor atual, o P/VP e a recomendação de ação, entregando o alerta direto no seu celular.
